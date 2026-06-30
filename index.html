@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Resume Screening</title>
+<style>
+  :root {
+    --ink: #1b1f23;
+    --paper: #f6f4ee;
+    --line: #d8d3c6;
+    --accent: #b5512f;
+    --accent-soft: #f0d9cd;
+    --good: #2f6b4f;
+    --good-soft: #dcebe2;
+    --bad: #a13c3c;
+    --bad-soft: #f3dcdc;
+    --mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+    --serif: "Source Serif Pro", Georgia, "Times New Roman", serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    line-height: 1.5;
+    padding: 48px 20px 80px;
+  }
+
+  .wrap { max-width: 880px; margin: 0 auto; }
+
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 6px;
+  }
+
+  h1 {
+    font-size: 32px;
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .api-config {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #6b6457;
+    text-align: right;
+  }
+
+  .api-config input {
+    font-family: var(--mono);
+    font-size: 12px;
+    border: 1px solid var(--line);
+    background: #fff;
+    padding: 6px 8px;
+    border-radius: 4px;
+    width: 230px;
+    color: var(--ink);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 28px;
+  }
+
+  @media (max-width: 720px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b6457;
+    margin-bottom: 8px;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 220px;
+    resize: vertical;
+    border: 1px solid var(--line);
+    background: #fffdf9;
+    border-radius: 6px;
+    padding: 14px;
+    font-family: var(--serif);
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.55;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+
+  button#runBtn {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 13px 26px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  button#runBtn:hover { background: var(--accent); }
+  button#runBtn:disabled { background: #a39d8e; cursor: wait; }
+
+  .status {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #6b6457;
+  }
+
+  .status.error { color: var(--bad); }
+
+  #result {
+    margin-top: 44px;
+    border-top: 2px solid var(--ink);
+    padding-top: 32px;
+    display: none;
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .score-dial {
+    position: relative;
+    width: 128px;
+    height: 128px;
+    flex-shrink: 0;
+  }
+
+  .score-dial svg { transform: rotate(-90deg); }
+
+  .score-dial .num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .score-dial .num strong {
+    font-family: var(--mono);
+    font-size: 30px;
+    line-height: 1;
+  }
+
+  .score-dial .num span {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: #6b6457;
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+  }
+
+  .verdict {
+    flex: 1;
+    min-width: 240px;
+  }
+
+  .verdict .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 100px;
+    margin-bottom: 10px;
+  }
+
+  .explanation {
+    font-size: 16px;
+    margin: 0;
+    color: #2c2a26;
+  }
+
+  .skills-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 720px) {
+    .skills-grid { grid-template-columns: 1fr; }
+  }
+
+  .skills-col h3 {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+
+  .skills-col.matched h3 { color: var(--good); }
+  .skills-col.missing h3 { color: var(--bad); }
+
+  .chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 5px 11px;
+    border-radius: 5px;
+  }
+
+  .matched .chip { background: var(--good-soft); color: var(--good); }
+  .missing .chip { background: var(--bad-soft); color: var(--bad); }
+
+  .empty-note {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: #9a9485;
+  }
+
+  footer {
+    margin-top: 60px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #9a9485;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="eyebrow">AI-Powered · TF-IDF + Cosine Similarity</p>
+      <h1>Smart Resume Screening</h1>
+    </div>
+    <div class="api-config">
+      API endpoint<br>
+      <input id="apiUrl" type="text" value="http://127.0.0.1:8000/match-resume">
+    </div>
+  </header>
+
+  <div class="grid">
+    <div>
+      <label for="jdText">Job Description</label>
+      <textarea id="jdText" placeholder="Paste the job description here...">We are looking for a Python Developer with experience in FastAPI, SQL, Machine Learning, and Data Science. Knowledge of Docker and AWS is a plus.</textarea>
+    </div>
+    <div>
+      <label for="resumeText">Resume</label>
+      <textarea id="resumeText" placeholder="Paste the resume text here...">Experienced Python developer skilled in FastAPI, Flask, and SQL. Worked on Machine Learning projects using scikit-learn and pandas. Familiar with Git and basic Docker usage.</textarea>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="runBtn">Run Match</button>
+    <span class="status" id="statusMsg"></span>
+  </div>
+
+  <div id="result">
+    <div class="score-row">
+      <div class="score-dial">
+        <svg width="128" height="128" viewBox="0 0 128 128">
+          <circle cx="64" cy="64" r="56" fill="none" stroke="#e4dfd2" stroke-width="10"/>
+          <circle id="scoreArc" cx="64" cy="64" r="56" fill="none" stroke="var(--accent)" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="352" stroke-dashoffset="352"/>
+        </svg>
+        <div class="num">
+          <strong id="scoreNum">0</strong>
+          <span>/ 100</span>
+        </div>
+      </div>
+      <div class="verdict">
+        <span class="tag" id="verdictTag">—</span>
+        <p class="explanation" id="explanationText"></p>
+      </div>
+    </div>
+
+    <div class="skills-grid">
+      <div class="skills-col matched">
+        <h3>Matched Skills</h3>
+        <div class="chip-list" id="matchedList"></div>
+      </div>
+      <div class="skills-col missing">
+        <h3>Missing Skills</h3>
+        <div class="chip-list" id="missingList"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Smart Resume Screening System · FastAPI backend · TF-IDF cosine similarity matching</footer>
+</div>
+
+<script>
+const runBtn = document.getElementById('runBtn');
+const statusMsg = document.getElementById('statusMsg');
+const resultEl = document.getElementById('result');
+
+const scoreArc = document.getElementById('scoreArc');
+const scoreNum = document.getElementById('scoreNum');
+const verdictTag = document.getElementById('verdictTag');
+const explanationText = document.getElementById('explanationText');
+const matchedList = document.getElementById('matchedList');
+const missingList = document.getElementById('missingList');
+
+const CIRC = 2 * Math.PI * 56;
+
+function renderChips(container, items, emptyMsg) {
+  container.innerHTML = '';
+  if (!items || items.length === 0) {
+    const note = document.createElement('span');
+    note.className = 'empty-note';
+    note.textContent = emptyMsg;
+    container.appendChild(note);
+    return;
+  }
+  items.forEach(skill => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = skill;
+    container.appendChild(chip);
+  });
+}
+
+function verdictFor(score) {
+  if (score >= 75) return { label: 'Strong Match', bg: 'var(--good-soft)', color: 'var(--good)' };
+  if (score >= 50) return { label: 'Moderate Match', bg: '#f5edd6', color: '#8a6a1a' };
+  if (score >= 25) return { label: 'Weak Match', bg: '#f5e6d6', color: '#a16a1a' };
+  return { label: 'Poor Match', bg: 'var(--bad-soft)', color: 'var(--bad)' };
+}
+
+async function runMatch() {
+  const apiUrl = document.getElementById('apiUrl').value.trim();
+  const jdText = document.getElementById('jdText').value.trim();
+  const resumeText = document.getElementById('resumeText').value.trim();
+
+  if (!jdText || !resumeText) {
+    statusMsg.textContent = 'Please fill in both the job description and resume.';
+    statusMsg.classList.add('error');
+    return;
+  }
+
+  statusMsg.classList.remove('error');
+  statusMsg.textContent = 'Scoring...';
+  runBtn.disabled = true;
+
+  try {
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jd_text: jdText, resume_text: resumeText })
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`Server responded ${res.status}: ${errBody}`);
+    }
+
+    const data = await res.json();
+
+    // Score dial
+    const score = Math.max(0, Math.min(100, data.match_score));
+    const offset = CIRC - (score / 100) * CIRC;
+    scoreArc.style.stroke = score >= 75 ? '#2f6b4f' : score >= 50 ? '#b5512f' : score >= 25 ? '#a16a1a' : '#a13c3c';
+    requestAnimationFrame(() => { scoreArc.style.transition = 'stroke-dashoffset 0.7s ease'; scoreArc.style.strokeDashoffset = offset; });
+    scoreNum.textContent = score;
+
+    // Verdict tag
+    const v = verdictFor(score);
+    verdictTag.textContent = v.label;
+    verdictTag.style.background = v.bg;
+    verdictTag.style.color = v.color;
+
+    // Explanation
+    explanationText.textContent = data.explanation;
+
+    // Skills
+    renderChips(matchedList, data.matched_skills, 'No matched skills found.');
+    renderChips(missingList, data.missing_skills, 'No missing skills — full coverage.');
+
+    resultEl.style.display = 'block';
+    statusMsg.textContent = 'Done.';
+  } catch (err) {
+    statusMsg.textContent = 'Error: ' + err.message + ' (check the API endpoint is running and CORS is enabled)';
+    statusMsg.classList.add('error');
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+runBtn.addEventListener('click', runMatch);
+</script>
+</body>
+</html>
